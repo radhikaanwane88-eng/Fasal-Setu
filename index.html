@@ -1,0 +1,54 @@
+<!DOCTYPE html><html lang="hi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Fasal Setu</title><style>
+:root{--bg:#0f1a14;--card:#17271e;--tx:#e8f5e9;--mu:#8fae98;--g:#43a047;--y:#fbc02d;--r:#e53935}
+*{box-sizing:border-box}body{margin:0;font:15px system-ui,Arial,sans-serif;background:var(--bg);color:var(--tx)}
+header{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;padding:14px 18px;border-bottom:1px solid #284434}
+h1{margin:0;font-size:22px;color:var(--g)}small,.mu{color:var(--mu)}main{display:grid;gap:14px;padding:16px;grid-template-columns:repeat(auto-fit,minmax(300px,1fr))}
+.card{background:var(--card);border-radius:12px;padding:14px;border:2px solid transparent}.card.l1{border-color:var(--y)}.card.l2,.card.l3{border-color:var(--r)}
+button,select,input{font:inherit;padding:8px 12px;border-radius:8px;border:1px solid #2f4d3b;background:#10201a;color:var(--tx)}
+button{cursor:pointer;background:var(--g);border:0;color:#fff}button.red{background:var(--r)}button.alt{background:#2f4d3b}
+.big{font-size:34px;font-weight:700}.bar{height:8px;background:#0c1511;border-radius:6px;overflow:hidden;margin:6px 0}.bar i{display:block;height:100%}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}.adv{margin-top:8px;padding:8px;background:#0c1511;border-radius:8px;font-size:13px}
+#siren{display:none;position:fixed;inset:0;background:rgba(229,57,53,.88);z-index:9;align-items:center;justify-content:center;text-align:center;font-size:30px;font-weight:800;animation:f .5s infinite alternate}
+@keyframes f{to{background:rgba(120,0,0,.92)}}li{margin:4px 0;font-size:13px}ul{padding-left:18px;margin:6px 0}
+</style></head><body>
+<div id="siren"><div>🚨 CRITICAL TEMPERATURE BREACH 🚨<br><small style="color:#fff;font-size:16px">Siren ON · Storage owner alerted · Click anywhere to dismiss view</small></div></div>
+<header><div><h1>🌾 Fasal Setu</h1><small>Farm se Market tak Cold Chain AI · <span id="wx">weather…</span></small></div>
+<div class="row"><button id="snd" class="alt">🔈 Enable siren sound</button><button id="tst" class="alt">🔔 Test siren</button><button id="flt" class="red">⚡ Simulate AC failure</button><button id="rst" class="alt">Reset</button></div></header>
+<main>
+<section class="card"><b>➕ New batch</b><div class="row" style="margin-top:8px"><select id="crop"></select><input id="qty" type="number" value="500" style="width:90px"><input id="farmer" placeholder="Farmer name" style="width:130px"><button id="add">Create</button></div>
+<p class="mu">Live simulated sensor (1 tick = 4 simulated hours of ageing). Shelf-life = digital twin: every °C above range ages the batch faster.</p></section>
+<section class="card"><b>🔔 Alerts (3-level escalation)</b><ul id="al"></ul></section>
+<div id="bt" style="display:contents"></div></main>
+<script>
+const $=id=>document.getElementById(id),api=(p,b)=>fetch(p,b?{method:'POST',body:JSON.stringify(b)}:{}).then(r=>r.json());
+let ctx,osc,timer,fault=false,advs={};
+const crops=["Banana","Tomato","Mango","Grapes","Potato"];$('crop').innerHTML=crops.map(c=>`<option>${c}</option>`).join('');
+function unlock(){ctx=ctx||new (window.AudioContext||window.webkitAudioContext)();if(ctx.state==='suspended')ctx.resume()}
+document.addEventListener('click',unlock);document.addEventListener('keydown',unlock);
+$('snd').onclick=()=>{unlock();$('snd').textContent='🔊 Siren sound ON'};
+$('tst').onclick=()=>{unlock();$('snd').textContent='🔊 Siren sound ON';startS();setTimeout(stopS,2500)};
+$('flt').onclick=()=>api('/api/fault',{on:!fault});$('rst').onclick=()=>{advs={};api('/api/reset',{})};
+$('add').onclick=()=>api('/api/batches',{crop:$('crop').value,qty:$('qty').value,farmer:$('farmer').value});
+$('siren').onclick=()=>{dismissed=true;$('siren').style.display='none';stopS()};
+let dismissed=false;
+function startS(){unlock();if(timer||!ctx)return;osc=ctx.createOscillator();osc.type='sawtooth';const g=ctx.createGain();g.gain.value=.5;osc.connect(g);g.connect(ctx.destination);osc.frequency.value=600;osc.start();
+ let h=0;timer=setInterval(()=>{if(osc)osc.frequency.value=(h^=1)?950:600},400)}
+function stopS(){clearInterval(timer);timer=null;if(osc){try{osc.stop()}catch(e){}osc=null}}
+function siren(on){if(!on){dismissed=false;stopS();$('siren').style.display='none';return}
+ if(!dismissed){$('siren').style.display='flex';startS()}}
+function spark(h,r){if(h.length<2)return'';const lo=Math.min(...h,r[0])-1,hi=Math.max(...h,r[1])+1,y=v=>40-(v-lo)/(hi-lo)*40,x=i=>i/(h.length-1)*160;
+ return`<svg viewBox="0 0 160 40" width="100%" height="50"><rect x="0" y="${y(r[1])}" width="160" height="${y(r[0])-y(r[1])}" fill="#43a04733"/><polyline fill="none" stroke="#fbc02d" stroke-width="2" points="${h.map((v,i)=>x(i)+','+y(v)).join(' ')}"/></svg>`}
+async function adv(id){advs[id]=await api('/api/advice?id='+id)}
+function render(s){fault=s.fault;$('flt').textContent=fault?'✅ Restore AC':'⚡ Simulate AC failure';siren(s.maxlevel>=3);
+ $('al').innerHTML=s.alerts.map(a=>`<li>${['','🟡 L1','🟠 L2','🔴 L3'][a.level]} <b>${a.code}</b> ${a.msg} <span class="mu">${new Date(a.ts*1000).toLocaleTimeString()}</span></li>`).join('')||'<li class="mu">No alerts</li>';
+ $('bt').innerHTML=s.batches.map(b=>{const a=advs[b.id],col=b.life_pct>50?'#43a047':b.life_pct>25?'#fbc02d':'#e53935';
+ return`<section class="card l${b.level}"><div class="row" style="justify-content:space-between"><b>${b.crop} · ${b.code}</b><small>${b.qty} kg · ${b.farmer}</small></div>
+ <div class="row" style="justify-content:space-between"><div><div class="big">${b.temp.toFixed(1)}°C</div><small>ideal ${b.range[0]}–${b.range[1]}°C</small></div>
+ <div style="text-align:right"><div class="big" style="color:${col}">${b.remaining_days}d</div><small>spoilage countdown</small></div></div>
+ <div class="bar"><i style="width:${b.life_pct}%;background:${col}"></i></div>${spark(b.history,b.range)}
+ <button onclick="adv(${b.id})">🧠 Sell-or-Store AI</button>
+ ${a?`<div class="adv"><b>${a.decision}</b> — ${a.reason}<br><span class="mu">Rs ${a.price}/kg (${a.price_source}) · sell now Rs ${a.net_sell} vs store Rs ${a.net_store}</span></div>`:''}</section>`}).join('')}
+async function poll(){try{render(await api('/api/state'));for(const id in advs)adv(id)}catch(e){}setTimeout(poll,2000)}poll();
+api('/api/weather').then(w=>{if(w.current)$('wx').textContent=`Nagpur ${w.current.temperature_2m}°C · hum ${w.current.relative_humidity_2m}%`+(w.daily&&w.daily.temperature_2m_max[1]>=40?' ⚠ heatwave tomorrow':'')}).catch(()=>{});
+</script></body></html>
